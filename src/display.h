@@ -39,6 +39,7 @@ void lvgl_init() {
         uint32_t w = (area->x2 - area->x1 + 1);
         uint32_t h = (area->y2 - area->y1 + 1);
         gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)&color_p->full, w, h);
+        lv_disp_flush_ready(disp_drv);
     };
     disp_drv.draw_buf = &draw_buf;
     lv_disp_drv_register(&disp_drv);
