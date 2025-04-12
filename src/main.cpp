@@ -19,20 +19,77 @@ void setup()
 
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
 
-    lv_obj_t *box = lv_obj_create(lv_scr_act());
-    lv_obj_set_style_bg_color(box, lv_color_hex(0x0000FF), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(box, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_align(box, LV_ALIGN_CENTER, 0, 0);
+    // Create meter
+    static lv_obj_t *meter = lv_meter_create(lv_scr_act());
+    lv_obj_set_style_text_color(meter, lv_color_make(0, 0, 255), LV_PART_TICKS);
+    lv_obj_center(meter);
+    lv_obj_set_size(meter, 240, 240);
 
-    lv_obj_t *btn = lv_btn_create(lv_scr_act());
-    lv_obj_t *label2 = lv_label_create(btn);
-    lv_label_set_text(label2, "Click me");
-    lv_obj_align(btn, LV_ALIGN_CENTER, 0, 0);
+    // Set background color to black
+    lv_obj_set_style_bg_color(meter, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(meter, LV_OPA_COVER, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    // Add meter scale
+    lv_meter_scale_t *scale = lv_meter_add_scale(meter);
+    lv_meter_set_scale_range(meter, scale, 0, 100, 270, 90);
+
+    // Set blue ticks
+    lv_meter_set_scale_ticks(meter, scale, 11, 2, 10, lv_color_make(0, 0, 255));
+    lv_meter_set_scale_major_ticks(meter, scale, 1, 4, 15, lv_color_make(0, 0, 255), 10);
+
+    // Red needle
+    static lv_meter_indicator_t *needle = lv_meter_add_needle_line(meter, scale, 4, lv_color_make(255, 0, 0), -35);
+    lv_obj_set_style_shadow_color(meter, lv_color_make(255, 0, 0), LV_PART_ITEMS);
+    lv_obj_set_style_shadow_width(meter, 20, LV_PART_ITEMS);
+    lv_obj_set_style_shadow_opa(meter, LV_OPA_50, LV_PART_ITEMS);
+    lv_meter_set_indicator_value(meter, needle, 0);
+
+    // Create a black circle to cover the needle
+    static lv_obj_t *circle = lv_obj_create(lv_scr_act());
+    lv_obj_set_style_bg_color(circle, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(circle, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_color(circle, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_border_width(circle, 1, LV_PART_MAIN);
+    lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_set_size(circle, 60, 60);
+    lv_obj_center(circle);
+
+    // Create a white text in the middle
+    static lv_obj_t *text = lv_label_create(lv_scr_act());
+    lv_label_set_text(text, "0");
+    lv_obj_set_style_text_color(text, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_font(text, &lv_font_montserrat_30, LV_PART_MAIN);
+    lv_obj_center(text);
+
+    // Force display refresh
+    delay(10);
+    lv_obj_invalidate(lv_scr_act());
+    delay(10);
+    _lv_disp_refr_timer(NULL);
+    delay(10);
+
+    // Create a task to update the meter value
+    xTaskCreate([](void *param) {
+        while (1) {
+            static int16_t val = 0;
+            if (val == 0) {
+                lv_obj_invalidate(lv_scr_act());
+            }
+            static int8_t dir = 1;
+            debug("Val: %d", val);
+            val += dir;
+            if (val >= 100 || val <= 0) dir = -dir;
+            lv_meter_set_indicator_value(meter, needle, val);
+            lv_label_set_text(text, String(val).c_str());
+            _lv_disp_refr_timer(NULL);
+            vTaskDelay(pdMS_TO_TICKS(1));
+        }
+    }, "val1_task", 4096, NULL, 1, NULL);
 }
 
 void loop()
 {
-    lv_task_handler();
+    delay(1000);
     auto freeSRAM = ESP.getFreeHeap();
     auto freePSRAM = ESP.getFreePsram();
 
