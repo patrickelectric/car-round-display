@@ -18,12 +18,13 @@ void setup()
     lvgl_init();
 
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), 0);
+    lv_obj_set_scrollbar_mode(lv_scr_act(), LV_SCROLLBAR_MODE_OFF);
 
     // Create meter
     static lv_obj_t *meter = lv_meter_create(lv_scr_act());
     lv_obj_set_style_text_color(meter, lv_color_make(0, 0, 255), LV_PART_TICKS);
     lv_obj_center(meter);
-    lv_obj_set_size(meter, 240, 240);
+    lv_obj_set_size(meter, 280, 280);
 
     // Set background color to black
     lv_obj_set_style_bg_color(meter, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -51,55 +52,46 @@ void setup()
     lv_obj_set_style_border_color(circle, lv_color_black(), LV_PART_MAIN);
     lv_obj_set_style_border_width(circle, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-    lv_obj_set_size(circle, 60, 60);
+    const auto radius = 80;
+    lv_obj_set_size(circle, radius, radius);
     lv_obj_center(circle);
 
     // Create a white text in the middle
     static lv_obj_t *text = lv_label_create(lv_scr_act());
     lv_label_set_text(text, "0");
     lv_obj_set_style_text_color(text, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_text_font(text, &lv_font_montserrat_30, LV_PART_MAIN);
+    lv_obj_set_style_text_font(text, &lv_font_montserrat_34, LV_PART_MAIN);
     lv_obj_center(text);
 
-    // Force display refresh
-    delay(10);
-    lv_obj_invalidate(lv_scr_act());
-    delay(10);
-    _lv_disp_refr_timer(NULL);
-    delay(10);
-
-    // Create a task to update the meter value
-    xTaskCreate([](void *param) {
-        while (1) {
-            static int16_t val = 0;
-            if (val == 0) {
-                lv_obj_invalidate(lv_scr_act());
-            }
-            static int8_t dir = 1;
-            debug("Val: %d", val);
-            val += dir;
-            if (val >= 100 || val <= 0) dir = -dir;
-            lv_meter_set_indicator_value(meter, needle, val);
-            lv_label_set_text(text, String(val).c_str());
-            _lv_disp_refr_timer(NULL);
-            vTaskDelay(pdMS_TO_TICKS(1));
+    // Timers
+    static auto update_meter = lv_timer_create([](lv_timer_t * timer) {
+        static int16_t val = 0;
+        if (val == 0) {
+            lv_obj_invalidate(lv_scr_act());
         }
-    }, "val1_task", 4096, NULL, 1, NULL);
+        static int8_t dir = 1;
+        val += dir;
+        if (val >= 100 || val <= 0) dir = -dir;
+        lv_meter_set_indicator_value(meter, needle, val);
+        lv_label_set_text(text, String(val).c_str());
+    }, 30, NULL);
+
+    static auto print_status = lv_timer_create([](lv_timer_t * timer) {
+        auto freeSRAM = ESP.getFreeHeap();
+        auto freePSRAM = ESP.getFreePsram();
+
+        debug("Free heap: %u bytes", ESP.getFreeHeap());
+        debug("Free PSRAM: %u bytes", ESP.getFreePsram());
+        debug("Heap size: %u bytes", ESP.getHeapSize());
+        debug("Min free heap: %u bytes", ESP.getMinFreeHeap());
+        debug("Max alloc heap: %u bytes", ESP.getMaxAllocHeap());
+        debug("CPU Temp: %.2f °C", temperatureRead());
+        debug("Uptime: %lu ms", millis());
+    }, 1000, NULL);
 }
 
 void loop()
 {
-    delay(1000);
-    auto freeSRAM = ESP.getFreeHeap();
-    auto freePSRAM = ESP.getFreePsram();
-
-    debug("Free heap: %u bytes", ESP.getFreeHeap());
-    debug("Free PSRAM: %u bytes", ESP.getFreePsram());
-    debug("Heap size: %u bytes", ESP.getHeapSize());
-    debug("Min free heap: %u bytes", ESP.getMinFreeHeap());
-    debug("Max alloc heap: %u bytes", ESP.getMaxAllocHeap());
-    debug("CPU Temp: %.2f °C", temperatureRead());
-    debug("Uptime: %lu ms", millis());
-    delay(1000);
+    lv_timer_handler();
+    delay(5);
 }
-
