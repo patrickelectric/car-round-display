@@ -6,6 +6,16 @@
 #include "display.h"
 #include "utils/debug.h"
 
+static lv_obj_t *meter;
+static lv_meter_indicator_t *needle;
+static lv_obj_t *text;
+
+void update_cbar_value(float value)
+{
+    lv_meter_set_indicator_value(meter, needle, value);
+    lv_label_set_text(text, String(static_cast<int>(value)).c_str());
+}
+
 void setup_screen()
 {
     Serial.begin(115200);
@@ -23,7 +33,7 @@ void setup_screen()
     lv_obj_set_scrollbar_mode(lv_scr_act(), LV_SCROLLBAR_MODE_OFF);
 
     // Create meter
-    static lv_obj_t *meter = lv_meter_create(lv_scr_act());
+    meter = lv_meter_create(lv_scr_act());
     lv_obj_set_style_text_color(meter, lv_color_make(0, 0, 255), LV_PART_TICKS);
     lv_obj_center(meter);
     lv_obj_set_size(meter, 280, 280);
@@ -41,7 +51,7 @@ void setup_screen()
     lv_meter_set_scale_major_ticks(meter, scale, 1, 3, 15, lv_color_make(0, 0, 255), 10);
 
     // Red needle
-    static lv_meter_indicator_t *needle = lv_meter_add_needle_line(meter, scale, 4, lv_color_make(255, 0, 0), -35);
+    needle = lv_meter_add_needle_line(meter, scale, 4, lv_color_make(255, 0, 0), -35);
     lv_obj_set_style_shadow_color(meter, lv_color_make(255, 0, 0), LV_PART_ITEMS);
     lv_obj_set_style_shadow_width(meter, 20, LV_PART_ITEMS);
     lv_obj_set_style_shadow_opa(meter, LV_OPA_50, LV_PART_ITEMS);
@@ -59,7 +69,7 @@ void setup_screen()
     lv_obj_center(circle);
 
     // Create a white text in the middle
-    static lv_obj_t *text = lv_label_create(lv_scr_act());
+    text = lv_label_create(lv_scr_act());
     lv_label_set_text(text, "0");
     lv_obj_set_style_text_color(text, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_text_font(text, &lv_font_montserrat_34, LV_PART_MAIN);
@@ -72,16 +82,17 @@ void setup_screen()
     lv_obj_set_style_text_font(text_sub, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_align(text_sub, LV_ALIGN_CENTER, 0, 20);
 
-    // Timers
+    // Repaint screen to take screen of artifacts
+    static auto update_screen = lv_timer_create([](lv_timer_t * timer) {
+        lv_obj_invalidate(lv_scr_act());
+    }, 1000, NULL);
+
+    // Temporary update cbar value
     static auto update_meter = lv_timer_create([](lv_timer_t * timer) {
         static int16_t val = 0;
-        if (val == 0) {
-            lv_obj_invalidate(lv_scr_act());
-        }
         static int8_t dir = 1;
         val += dir;
         if (val >= 150 || val <= 0) dir = -dir;
-        lv_meter_set_indicator_value(meter, needle, val);
-        lv_label_set_text(text, String(val).c_str());
-    }, 30, NULL);
+        update_cbar_value(static_cast<float>(val));
+    }, 10, NULL);
 }
