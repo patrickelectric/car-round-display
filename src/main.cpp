@@ -15,11 +15,8 @@ void setup()
 
     setup_screen();
 
-    // Connect to OBD device
     if (connectToOBD()) {
       debug("Connected to OBD device successfully!");
-
-      // Initialize OBD with standard AT commands
       initializeOBD();
     } else {
       debug("Failed to connect to OBD device");
@@ -38,20 +35,11 @@ void setup()
         debug("Uptime: %lu ms", millis());
     }, 1000, NULL);
 
-    static auto print_status = lv_timer_create([](lv_timer_t * timer) {
-        auto freeSRAM = ESP.getFreeHeap();
-        auto freePSRAM = ESP.getFreePsram();
-
-        debug("Free heap: %u bytes", ESP.getFreeHeap());
-        debug("Free PSRAM: %u bytes", ESP.getFreePsram());
-        debug("Heap size: %u bytes", ESP.getHeapSize());
-        debug("Min free heap: %u bytes", ESP.getMinFreeHeap());
-        debug("Max alloc heap: %u bytes", ESP.getMaxAllocHeap());
-        debug("CPU Temp: %.2f °C", temperatureRead());
-        debug("Uptime: %lu ms", millis());
-    }, 1000, NULL);
-
     static auto reconnect_bluetooth = lv_timer_create([](lv_timer_t * timer) {
+        if (deviceConnected) {
+            return;
+        }
+
         static unsigned long lastReconnectAttempt = 0;
         unsigned long currentTime = millis();
         if (currentTime - lastReconnectAttempt > 10000) {
@@ -68,11 +56,10 @@ void setup()
 
     static auto ask_data = lv_timer_create([](lv_timer_t * timer) {
         //sendOBDCommand("0105"); // Engine coolant temperature
-        //sendOBDCommand("010C"); // Engine RPM
         sendOBDCommand("010B"); // MAP (Manifold Absolute Pressure)
+        //sendOBDCommand("010C"); // Engine RPM
+        //sendOBDCommand("010D"); // Vehicle speed
         sendOBDCommand("0133"); // Barometric pressure
-        //sendOBDCommand("015E"); // Request available PIDs
-        //sendOBDCommand("010D"); // Request available PIDs
     }, 60, NULL);
 }
 

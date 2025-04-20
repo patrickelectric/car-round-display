@@ -12,8 +12,12 @@ static lv_obj_t *text;
 
 void update_cbar_value(float value)
 {
-    lv_meter_set_indicator_value(meter, needle, value);
-    lv_label_set_text(text, String(static_cast<int>(value)).c_str());
+    value = value * 10;
+    static float old_value = 0;
+    old_value = old_value * 0.6 + value * 0.4;
+
+    lv_meter_set_indicator_value(meter, needle, old_value);
+    lv_label_set_text(text, String(static_cast<int>(old_value)).c_str());
 }
 
 void setup_screen()
@@ -36,7 +40,7 @@ void setup_screen()
     meter = lv_meter_create(lv_scr_act());
     lv_obj_set_style_text_color(meter, lv_color_make(0, 0, 255), LV_PART_TICKS);
     lv_obj_center(meter);
-    lv_obj_set_size(meter, 280, 280);
+    lv_obj_set_size(meter, 274, 274);
 
     // Set background color to black
     lv_obj_set_style_bg_color(meter, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -44,11 +48,31 @@ void setup_screen()
 
     // Add meter scale
     lv_meter_scale_t *scale = lv_meter_add_scale(meter);
-    lv_meter_set_scale_range(meter, scale, 0, 150, 270, 90);
+    lv_meter_set_scale_range(meter, scale, -60, 150, 270, 90);
 
     // Set blue ticks
-    lv_meter_set_scale_ticks(meter, scale, 16, 2, 10, lv_color_make(0, 0, 255));
-    lv_meter_set_scale_major_ticks(meter, scale, 1, 3, 15, lv_color_make(0, 0, 255), 10);
+    lv_meter_set_scale_ticks(meter, scale, 15, 2, 10, lv_palette_main(LV_PALETTE_BLUE));
+    lv_meter_set_scale_major_ticks(meter, scale, 1, 3, 15, lv_palette_main(LV_PALETTE_BLUE), 10);
+
+    // Add a green arc to the start
+    needle = lv_meter_add_arc(meter, scale, 3, lv_palette_main(LV_PALETTE_GREEN), 0);
+    lv_meter_set_indicator_start_value(meter, needle, -60);
+    lv_meter_set_indicator_end_value(meter, needle, 0);
+
+    // Make the tick lines green at the start of the scale
+    needle = lv_meter_add_scale_lines(meter, scale, lv_palette_main(LV_PALETTE_GREEN), lv_palette_main(LV_PALETTE_GREEN), false, 0);
+    lv_meter_set_indicator_start_value(meter, needle, -60);
+    lv_meter_set_indicator_end_value(meter, needle, 0);
+
+    // Add a red arc to the end
+    needle = lv_meter_add_arc(meter, scale, 3, lv_palette_main(LV_PALETTE_RED), 0);
+    lv_meter_set_indicator_start_value(meter, needle, 105);
+    lv_meter_set_indicator_end_value(meter, needle, 150);
+
+    // Make the tick lines red at the end of the scale
+    needle = lv_meter_add_scale_lines(meter, scale, lv_palette_main(LV_PALETTE_RED), lv_palette_main(LV_PALETTE_RED), false, 0);
+    lv_meter_set_indicator_start_value(meter, needle, 105);
+    lv_meter_set_indicator_end_value(meter, needle, 150);
 
     // Red needle
     needle = lv_meter_add_needle_line(meter, scale, 4, lv_color_make(255, 0, 0), -35);
@@ -88,6 +112,7 @@ void setup_screen()
     }, 1000, NULL);
 
     // Temporary update cbar value
+    /*
     static auto update_meter = lv_timer_create([](lv_timer_t * timer) {
         static int16_t val = 0;
         static int8_t dir = 1;
@@ -95,4 +120,5 @@ void setup_screen()
         if (val >= 150 || val <= 0) dir = -dir;
         update_cbar_value(static_cast<float>(val));
     }, 10, NULL);
+    */
 }
