@@ -1,3 +1,5 @@
+#pragma once
+
 #include <lvgl.h>
 #include <Arduino_GFX_Library.h>
 
