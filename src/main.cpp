@@ -13,14 +13,16 @@ void setup()
     debug("Starting ESP32-C3 OBD-II BLE Client");
     BLEDevice::init("ESP32-C3 OBD Client");
 
-    setup_screen();
+    Screen::instance().setup();
 
-    if (connectToOBD()) {
+    /*\
+    auto& obd = OBD::instance();
+    if (obd.connect()) {
       debug("Connected to OBD device successfully!");
-      initializeOBD();
+      obd.initialize();
     } else {
       debug("Failed to connect to OBD device");
-    }
+    }*/
 
     static auto print_status = lv_timer_create([](lv_timer_t * timer) {
         auto freeSRAM = ESP.getFreeHeap();
@@ -36,30 +38,35 @@ void setup()
     }, 1000, NULL);
 
     static auto reconnect_bluetooth = lv_timer_create([](lv_timer_t * timer) {
-        if (deviceConnected) {
+        auto& obd = OBD::instance();
+        auto connected = obd.isConnected();
+        Screen::instance().updateBluetoothIcon(connected);
+        if (connected) {
             return;
         }
 
         static unsigned long lastReconnectAttempt = 0;
         unsigned long currentTime = millis();
-        if (currentTime - lastReconnectAttempt > 10000) {
+        if (currentTime - lastReconnectAttempt > 2000) {
             lastReconnectAttempt = currentTime;
             debug("Attempting to reconnect...");
-            if (connectToOBD()) {
+            if (obd.connect()) {
                 debug("Reconnected to OBD device successfully!");
-                initializeOBD();
+                obd.initialize();
             } else {
                 debug("Failed to reconnect to OBD device");
             }
+            Screen::instance().updateBluetoothIcon(obd.isConnected());
         }
-    }, 1000, NULL);
+    }, 500, NULL);
 
     static auto ask_data = lv_timer_create([](lv_timer_t * timer) {
-        //sendOBDCommand("0105"); // Engine coolant temperature
-        sendOBDCommand("010B"); // MAP (Manifold Absolute Pressure)
-        //sendOBDCommand("010C"); // Engine RPM
-        //sendOBDCommand("010D"); // Vehicle speed
-        sendOBDCommand("0133"); // Barometric pressure
+        auto& obd = OBD::instance();
+        //obd.sendCommand("0105"); // Engine coolant temperature
+        obd.sendCommand("010B"); // MAP (Manifold Absolute Pressure)
+        //obd.sendCommand("010C"); // Engine RPM
+        //obd.sendCommand("010D"); // Vehicle speed
+        obd.sendCommand("0133"); // Barometric pressure
     }, 30, NULL);
 }
 
