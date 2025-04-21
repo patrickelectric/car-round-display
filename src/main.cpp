@@ -60,7 +60,7 @@ void setup()
         //sendOBDCommand("010C"); // Engine RPM
         //sendOBDCommand("010D"); // Vehicle speed
         sendOBDCommand("0133"); // Barometric pressure
-    }, 60, NULL);
+    }, 30, NULL);
 }
 
 void loop()

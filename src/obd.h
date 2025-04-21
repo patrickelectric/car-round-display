@@ -19,6 +19,8 @@ static BLEAddress obd_address("81:23:45:67:89:ba");
 BLEClient* pClient = nullptr;
 BLERemoteCharacteristic* pReadCharacteristic = nullptr;   // For reading responses
 BLERemoteCharacteristic* pWriteCharacteristic = nullptr;  // For writing commands
+
+// TODO: Move this to a function
 bool deviceConnected = false;
 
 // Callback for BLE notifications from the read characteristic
@@ -51,6 +53,12 @@ static void notifyCallback(
 
 // Connect to the OBD device
 bool connectToOBD() {
+  if (pClient && pClient->isConnected()) {
+    deviceConnected = true;
+    return true;
+  }
+  deviceConnected = false;
+
   debug("Connecting to OBD device...");
 
   // Create a client
@@ -113,7 +121,8 @@ bool connectToOBD() {
 
 // Function to send OBD command
 void sendOBDCommand(const char* command) {
-  if (!deviceConnected) {
+  if (!pClient || !pClient->isConnected()) {
+    deviceConnected = false;
     debug("Cannot send command - not connected");
     return;
   }

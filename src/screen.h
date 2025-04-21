@@ -6,24 +6,25 @@
 #include "display.h"
 #include "utils/debug.h"
 
+LV_FONT_DECLARE(font_awesome);
+
 static lv_obj_t *meter;
 static lv_meter_indicator_t *needle;
 static lv_obj_t *text;
+static lv_obj_t *bluetooth_icon;
+static lv_obj_t *gas_icon;
+static lv_obj_t *wifi_icon;
 
+
+static float cbar_value = 0;
 void update_cbar_value(float value)
 {
-    value = value * 10;
-    static float old_value = 0;
-    old_value = old_value * 0.6 + value * 0.4;
-
-    lv_meter_set_indicator_value(meter, needle, old_value);
-    lv_label_set_text(text, String(static_cast<int>(old_value)).c_str());
+    cbar_value = value * 10;
 }
 
 void setup_screen()
 {
-    Serial.begin(115200);
-    delay(1000);
+    const auto screen_size = 274;
 
     // Turn on backlight
     pinMode(3, OUTPUT);
@@ -40,7 +41,7 @@ void setup_screen()
     meter = lv_meter_create(lv_scr_act());
     lv_obj_set_style_text_color(meter, lv_color_make(0, 0, 255), LV_PART_TICKS);
     lv_obj_center(meter);
-    lv_obj_set_size(meter, 274, 274);
+    lv_obj_set_size(meter, screen_size, screen_size);
 
     // Set background color to black
     lv_obj_set_style_bg_color(meter, lv_color_black(), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -81,16 +82,17 @@ void setup_screen()
     lv_obj_set_style_shadow_opa(meter, LV_OPA_50, LV_PART_ITEMS);
     lv_meter_set_indicator_value(meter, needle, 0);
 
-    // Create a black circle to cover the needle
-    static lv_obj_t *circle = lv_obj_create(lv_scr_act());
-    lv_obj_set_style_bg_color(circle, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(circle, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_border_color(circle, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_border_width(circle, 1, LV_PART_MAIN);
-    lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-    const auto radius = 80;
-    lv_obj_set_size(circle, radius, radius);
-    lv_obj_center(circle);
+    { // Create a black circle to cover the needle
+        static lv_obj_t *circle = lv_obj_create(lv_scr_act());
+        lv_obj_set_style_bg_color(circle, lv_color_black(), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(circle, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_border_color(circle, lv_color_black(), LV_PART_MAIN);
+        lv_obj_set_style_border_width(circle, 1, LV_PART_MAIN);
+        lv_obj_set_style_radius(circle, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+        const auto radius = 80;
+        lv_obj_set_size(circle, radius, radius);
+        lv_obj_center(circle);
+    }
 
     // Create a white text in the middle
     text = lv_label_create(lv_scr_act());
@@ -106,19 +108,58 @@ void setup_screen()
     lv_obj_set_style_text_font(text_sub, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_align(text_sub, LV_ALIGN_CENTER, 0, 20);
 
+    {
+        bluetooth_icon = lv_label_create(lv_scr_act());
+        lv_label_set_text(bluetooth_icon, "\uf293");
+        lv_obj_set_style_text_color(bluetooth_icon, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
+        lv_obj_set_style_text_font(bluetooth_icon, &font_awesome, LV_PART_MAIN);
+        // calculate the position based on the radius and angle of a circle
+        const auto radius = screen_size / 3;
+        const auto angle = M_PI / 4;
+        const auto x = radius * cos(angle);
+        const auto y = radius * sin(angle);
+        lv_obj_align(bluetooth_icon, LV_ALIGN_CENTER, x, y);
+    }
+
+    if (false) {
+        gas_icon = lv_label_create(lv_scr_act());
+        lv_label_set_text(gas_icon, "\uf52f");
+        lv_obj_set_style_text_color(gas_icon, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
+        lv_obj_set_style_text_font(gas_icon, &font_awesome, LV_PART_MAIN);
+        // calculate the position based on the radius and angle of a circle
+        const auto radius = screen_size / 3;
+        const auto angle = M_PI / 8;
+        const auto x = radius * cos(angle);
+        const auto y = radius * sin(angle);
+        lv_obj_align(gas_icon, LV_ALIGN_CENTER, x, y);
+    }
+
+    if (false) {
+        wifi_icon = lv_label_create(lv_scr_act());
+        lv_label_set_text(wifi_icon, "\uf1b9");
+        lv_obj_set_style_text_color(wifi_icon, lv_palette_main(LV_PALETTE_GREEN), LV_PART_MAIN);
+        lv_obj_set_style_text_font(wifi_icon, &font_awesome, LV_PART_MAIN);
+        // calculate the position based on the radius and angle of a circle
+        const auto radius = screen_size / 3;
+        const auto angle = 3 * M_PI / 8;
+        const auto x = radius * cos(angle);
+        const auto y = radius * sin(angle);
+        lv_obj_align(wifi_icon, LV_ALIGN_CENTER, x, y);
+    }
+
     // Repaint screen to take screen of artifacts
     static auto update_screen = lv_timer_create([](lv_timer_t * timer) {
         lv_obj_invalidate(lv_scr_act());
     }, 1000, NULL);
 
-    // Temporary update cbar value
-    /*
     static auto update_meter = lv_timer_create([](lv_timer_t * timer) {
-        static int16_t val = 0;
-        static int8_t dir = 1;
-        val += dir;
-        if (val >= 150 || val <= 0) dir = -dir;
-        update_cbar_value(static_cast<float>(val));
+        static float old_value = 0;
+        old_value = old_value * 0.6 + cbar_value * 0.4;
+
+        lv_meter_set_indicator_value(meter, needle, old_value);
+        lv_label_set_text(text, String(static_cast<int>(old_value)).c_str());
     }, 10, NULL);
-    */
+
+    // Update screen
+    lv_obj_invalidate(lv_scr_act());
 }
