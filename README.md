@@ -1,4 +1,12 @@
-# README
+# Car Round Display
+> No, I don't have a better name for it
+
+Minimal display to show the turbo pressure of my car
+
+![ezgif-16ffce75ccc224](https://github.com/user-attachments/assets/db0a2f27-82ef-4d72-bf3f-ffac0eac9981)
+
+![ezgif-13fc4964cb7d78](https://github.com/user-attachments/assets/cad0bdf6-28c9-474d-b409-20bf04a6f90b)
+
 
 ### References
 - https://github.com/Spotpear/ESP32-C3-1.28inch-Round-LCD
