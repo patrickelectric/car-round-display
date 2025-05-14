@@ -1,7 +1,7 @@
 # Car Round Display
 > No, I don't have a better name for it
 
-Minimal display to show the turbo pressure of my car
+Minimal display to show the turbo pressure of my car (VW new Polo TSI) using a cheap OBDII.
 
 ![ezgif-16ffce75ccc224](https://github.com/user-attachments/assets/db0a2f27-82ef-4d72-bf3f-ffac0eac9981)
 
